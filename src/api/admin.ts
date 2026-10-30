@@ -43,3 +43,22 @@ export async function generateRoomToken(hotel_id: string, room_number: string) {
   return data as { ok: true; hotel_id: string; room_number: string; t: string };
 }
 
+export async function inviteManager(email: string, hotel_id: string, full_name: string) {
+  const { data, error } = await supabase.functions.invoke('invite-manager', {
+    body: { email, hotel_id, full_name },
+  });
+  if (error) throw error;
+  if (!data?.ok) throw new Error(data?.error ?? 'Invite failed');
+  return data;
+}
+
+export async function getPlatformStats() {
+  const [hotelsRes, requestsRes] = await Promise.all([
+    supabase.from('hotels').select('id', { count: 'exact' }),
+                                                     supabase.from('requests').select('id', { count: 'exact' }),
+  ]);
+  return {
+    totalHotels: hotelsRes.count ?? 0,
+    totalRequests: requestsRes.count ?? 0,
+  };
+}
