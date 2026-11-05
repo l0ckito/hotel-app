@@ -27,24 +27,44 @@ export async function createCompendiumEntry(input: {
   const { data, error } = await supabase
     .from('compendium')
     .insert({ ...input, sort_order: input.sort_order ?? 0 })
-    .select()
-    .single();
+    .select();
+
   if (error) throw error;
-  return data as CompendiumEntry;
+  if (!data || data.length === 0) throw new Error('Insert returned no rows');
+
+  return data[0] as CompendiumEntry;
 }
 
 export async function updateCompendiumEntry(
   id: string,
   patch: { section?: string; content?: string; sort_order?: number }
 ) {
-  const { data, error } = await supabase
+  console.log('[compendium] update called with id:', id, 'patch:', patch);
+
+  if (!id) {
+    throw new Error('updateCompendiumEntry called without id');
+  }
+
+  const { data, error, status } = await supabase
     .from('compendium')
     .update(patch)
     .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as CompendiumEntry;
+    .select();
+
+  console.log('[compendium] update result:', { status, data, error });
+
+  if (error) {
+    console.error('[compendium] update error:', error);
+    throw error;
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error(
+      `Entry ${id} not found or update blocked. Check console for details.`
+    );
+  }
+
+  return data[0] as CompendiumEntry;
 }
 
 export async function deleteCompendiumEntry(id: string) {

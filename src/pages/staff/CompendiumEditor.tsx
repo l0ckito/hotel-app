@@ -14,7 +14,9 @@ export default function CompendiumEditor({ hotel_id }: { hotel_id: string }) {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      setEntries(await getCompendium(hotel_id));
+      const data = await getCompendium(hotel_id);
+      console.log('[CompendiumEditor] loaded entries:', data);
+      setEntries(data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -87,19 +89,31 @@ function EntryModal({
   const [error, setError] = useState<string | null>(null);
 
   async function save() {
-    setSaving(true); setError(null);
+    setSaving(true);
+    setError(null);
     try {
+      console.log('[CompendiumEditor] saving. entry:', entry, 'id:', entry?.id);
+
       if (entry) {
+        if (!entry.id) {
+          throw new Error('Entry has no id — cannot update.');
+        }
         await updateCompendiumEntry(entry.id, {
-          section, content, sort_order: Number(order) || 0,
+          section,
+          content,
+          sort_order: Number(order) || 0,
         });
       } else {
         await createCompendiumEntry({
-          hotel_id, section, content, sort_order: Number(order) || 0,
+          hotel_id,
+          section,
+          content,
+          sort_order: Number(order) || 0,
         });
       }
       onSaved();
     } catch (e: any) {
+      console.error('[CompendiumEditor] save failed:', e);
       setError(e.message);
     } finally {
       setSaving(false);
