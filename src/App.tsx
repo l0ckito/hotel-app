@@ -9,6 +9,8 @@ import { getMe } from './api/staff';
 
 export default function App() {
   const [path, setPath] = useState(window.location.pathname);
+  const tenant = useTenant();
+
   useEffect(() => {
     const onNav = () => setPath(window.location.pathname);
     window.addEventListener('popstate', onNav);
@@ -18,10 +20,10 @@ export default function App() {
   if (path.startsWith('/admin')) return <AdminPage />;
   if (path.startsWith('/staff')) return <StaffArea />;
 
-  const { hotel, loading, error, room, token } = useTenant();
-  if (loading) return <div style={{ padding: 40 }}>Loading hotel…</div>;
+  const { hotel, loading, error, room, token } = tenant;
+  if (loading) return <div style={{ padding: 40 }}>Cargando restaurante…</div>;
   if (error || !hotel)
-    return <div style={{ padding: 40, color: 'red' }}>Error: {error ?? 'Hotel not found'}</div>;
+    return <div style={{ padding: 40, color: 'red' }}>Error: {error ?? 'Restaurante no encontrado'}</div>;
 
   return (
     <BrandProvider hotel={hotel}>
@@ -34,7 +36,7 @@ function StaffArea() {
   const [me, setMe] = useState<any>(null);
   const [checking, setChecking] = useState(true);
   useEffect(() => { getMe().then((m) => { setMe(m); setChecking(false); }); }, []);
-  if (checking) return <div style={{ padding: 40 }}>Checking session…</div>;
+  if (checking) return <div style={{ padding: 40 }}>Comprobando sesión…</div>;
   if (!me) return <StaffLogin onSignedIn={() => window.location.reload()} />;
   return <StaffDashboard />;
 }

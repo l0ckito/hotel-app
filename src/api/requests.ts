@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-export type RequestCategory = 'towel' | 'maintenance' | 'food' | 'other';
+export type RequestCategory = string;
 
 export async function submitRequest(input: {
   hotel_id: string;
@@ -27,7 +27,14 @@ export async function listRequests(hotel_id: string) {
   return data;
 }
 
-export async function updateRequestStatus(id: string, status: 'new' | 'in_progress' | 'done') {
-  const { error } = await supabase.from('requests').update({ status }).eq('id', id);
+export async function updateRequestStatus(
+  id: string,
+  status: 'new' | 'in_progress' | 'done',
+) {
+  const { error } = await supabase
+    .from('requests')
+    .update({ status })
+    .eq('id', id);
+
   if (error) throw error;
 }

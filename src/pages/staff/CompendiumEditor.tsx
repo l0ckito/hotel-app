@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   getCompendium, createCompendiumEntry, updateCompendiumEntry,
   deleteCompendiumEntry, type CompendiumEntry,
@@ -11,7 +11,7 @@ export default function CompendiumEditor({ hotel_id }: { hotel_id: string }) {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function reload() {
+  const reload = useCallback(async () => {
     setLoading(true);
     try {
       setEntries(await getCompendium(hotel_id));
@@ -20,9 +20,9 @@ export default function CompendiumEditor({ hotel_id }: { hotel_id: string }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [hotel_id]);
 
-  useEffect(() => { reload(); }, [hotel_id]);
+  useEffect(() => { void reload(); }, [reload]);
 
   async function handleDelete(e: CompendiumEntry) {
     if (!confirm(`Delete "${e.section}"?`)) return;

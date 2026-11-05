@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useHotel } from '../../components/BrandProvider';
+import { useTranslation } from 'react-i18next';
+import { useHotel } from '../../hooks/useHotel';
 import { getCompendium, type CompendiumEntry } from '../../api/compendium';
 
 export default function CompendiumPage({ onBack }: { onBack: () => void }) {
   const hotel = useHotel()!;
+  const { t } = useTranslation();
   const [entries, setEntries] = useState<CompendiumEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,11 +17,11 @@ export default function CompendiumPage({ onBack }: { onBack: () => void }) {
 
   return (
     <div style={{ padding: 24, fontFamily: 'system-ui', maxWidth: 480, margin: '0 auto' }}>
-      <button onClick={onBack} style={backBtn}>← Back</button>
-      <h2 style={{ color: 'var(--primary-color)' }}>Hotel info</h2>
+      <button onClick={onBack} style={backBtn}>← {t('guest.back')}</button>
+      <h2 style={{ color: 'var(--primary-color)' }}>{t('guest.info_title')}</h2>
 
-      {loading && <p>Loading…</p>}
-      {!loading && entries.length === 0 && <p>No info yet.</p>}
+      {loading && <p>{t('guest.loading')}</p>}
+      {!loading && entries.length === 0 && <p>{t('guest.no_info')}</p>}
 
       <div style={{ display: 'grid', gap: 14, marginTop: 20 }}>
         {entries.map((e) => (

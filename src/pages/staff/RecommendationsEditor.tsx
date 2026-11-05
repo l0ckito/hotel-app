@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
 	getRecommendations,
 	createRecommendation,
@@ -14,7 +14,7 @@ export default function RecommendationsEditor({ hotel_id }: { hotel_id: string }
 	const [creating, setCreating] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	
-	async function reload() {
+	const reload = useCallback(async () => {
 		setLoading(true);
 		try {
 			setItems(await getRecommendations(hotel_id));
@@ -23,9 +23,9 @@ export default function RecommendationsEditor({ hotel_id }: { hotel_id: string }
 		} finally {
 			setLoading(false);
 		}
-	}
+	}, [hotel_id]);
 	
-	useEffect(() => { reload(); }, [hotel_id]);
+	useEffect(() => { void reload(); }, [reload]);
 	
 	async function handleDelete(r: Recommendation) {
 		if (!confirm(`Delete "${r.name}"?`)) return;

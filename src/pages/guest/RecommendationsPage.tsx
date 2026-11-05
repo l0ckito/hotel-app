@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useHotel } from '../../components/BrandProvider';
+import { useTranslation } from 'react-i18next';
+import { useHotel } from '../../hooks/useHotel';
 import { getRecommendations, type Recommendation } from '../../api/recommendations';
 
 const CAT_LABEL: Record<Recommendation['category'], string> = {
@@ -12,6 +13,7 @@ const CAT_LABEL: Record<Recommendation['category'], string> = {
 
 export default function RecommendationsPage({ onBack }: { onBack: () => void }) {
   const hotel = useHotel()!;
+  const { t } = useTranslation();
   const [recs, setRecs] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,14 +27,14 @@ export default function RecommendationsPage({ onBack }: { onBack: () => void }) 
 
   return (
     <div style={{ padding: 24, fontFamily: 'system-ui', maxWidth: 480, margin: '0 auto' }}>
-      <button onClick={onBack} style={backBtn}>← Back</button>
-      <h2 style={{ color: 'var(--primary-color)' }}>Explore nearby</h2>
-      <p style={{ color: '#666', marginTop: 0 }}>Handpicked by {hotel.name}</p>
+      <button onClick={onBack} style={backBtn}>← {t('guest.back')}</button>
+      <h2 style={{ color: 'var(--primary-color)' }}>{t('guest.explore_title')}</h2>
+      <p style={{ color: '#666', marginTop: 0 }}>{t('guest.explore_desc')} {hotel.name}</p>
 
-      {loading && <p>Loading…</p>}
+      {loading && <p>{t('guest.loading')}</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {!loading && !error && recs.length === 0 && (
-        <p style={{ color: '#999' }}>No recommendations yet.</p>
+        <p style={{ color: '#999' }}>{t('guest.no_recommendations')}</p>
       )}
 
       <div style={{ display: 'grid', gap: 12, marginTop: 16 }}>

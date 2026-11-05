@@ -1,0 +1,100 @@
+/* =========================================
+ *  GLOBAL RESET & BASE STYLES
+ *  ========================================= */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button, input, textarea, select {
+  font-family: inherit;
+}
+
+/* =========================================
+ *  NEON TABS (CodeFronts Integration)
+ *  ========================================= */
+.tt22n {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  margin-top: 24px;
+}
+
+.tt22n input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tt22b {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  font: 700 12px/1 system-ui, sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #666;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.tt22b:hover {
+  color: #333;
+  border-color: #aaa;
+}
+
+/* The active state uses the --c variable passed from React */
+.tt22n input:checked + .tt22b {
+  color: var(--c);
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 10%, white);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c) 30%, transparent), 
+  inset 0 0 8px color-mix(in srgb, var(--c) 15%, transparent);
+}
+
+.tt22n input:focus-visible + .tt22b {
+  outline: 2px dashed var(--c);
+  outline-offset: 2px;
+}
+
+/* Hide all panels by default */
+.tt22p {
+  display: none;
+}
+
+/* Show the active panel based on the checked radio button */
+.tt22:has(#tt22-r1:checked) .tt22p:nth-of-type(1),
+.tt22:has(#tt22-r2:checked) .tt22p:nth-of-type(2),
+.tt22:has(#tt22-r3:checked) .tt22p:nth-of-type(3),
+.tt22:has(#tt22-r4:checked) .tt22p:nth-of-type(4),
+.tt22:has(#tt22-r5:checked) .tt22p:nth-of-type(5) {
+  display: block;
+  padding-top: 18px;
+  animation: fadeInTab 0.3s ease-in-out;
+}
+
+@keyframes fadeInTab {
+  from { 
+    opacity: 0; 
+    transform: translateY(4px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}

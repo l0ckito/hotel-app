@@ -1,15 +1,19 @@
-import { createContext, useContext, type ReactNode, type CSSProperties } from 'react';
+import { type ReactNode, type CSSProperties } from 'react';
 import type { Hotel } from '../api/hotels';
-
-const HotelCtx = createContext<Hotel | null>(null);
-export const useHotel = () => useContext(HotelCtx);
+import { HotelContext } from '../hooks/useHotel';
 
 export function BrandProvider({ hotel, children }: { hotel: Hotel; children: ReactNode }) {
   return (
-    <HotelCtx.Provider value={hotel}>
-      <div style={{ '--primary-color': hotel.primary_color } as CSSProperties}>
+    <HotelContext.Provider value={hotel}>
+      <div
+        style={{
+          '--brand-primary': hotel.primary_color ?? '#800000',
+          '--brand-secondary': hotel.secondary_color ?? '#d97706',
+          '--primary-color': hotel.primary_color ?? '#800000',
+        } as CSSProperties}
+      >
         {children}
       </div>
-    </HotelCtx.Provider>
+    </HotelContext.Provider>
   );
 }
