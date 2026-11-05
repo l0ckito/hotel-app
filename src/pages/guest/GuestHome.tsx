@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
+import GuestLayout from '../../components/GuestLayout';
 import { useHotel } from '../../hooks/useHotel';
 import RequestForm from './RequestForm';
 import MenuPage from './MenuPage';
@@ -37,30 +38,30 @@ export default function GuestHome({ room, token }: { room: string | null; token:
   ].filter(Boolean) as Array<{ key: string; label: string; icon: string; view: View }>;
 
   return (
-    <div data-locale={i18n.language} style={{ padding: 24, fontFamily: 'system-ui', maxWidth: 480, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <div />
-        <LanguageSwitcher style={{ minWidth: 88 }} />
+    <GuestLayout>
+      <div data-locale={i18n.language}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <LanguageSwitcher style={{ minWidth: 88 }} />
+        </div>
+
+        {room && <p style={{ color: '#666', margin: '0 0 8px' }}>{t('guest.table')} {room}</p>}
+        <p style={{ margin: '0 0 8px' }}>{t('guest.welcome')}</p>
+
+        <div style={{ display: 'grid', gap: 12, marginTop: 20 }}>
+          {enabledButtons.map(({ key, label, icon, view: btnView }) => (
+            <button key={key} style={btn} onClick={() => setView(btnView)}>
+              {icon} {label}
+            </button>
+          ))}
+        </div>
+
+        {requestCategories.length === 0 && !token && (
+          <p style={{ marginTop: 24, fontSize: 13, color: '#999' }}>
+            {t('guest.scan_qr')}
+          </p>
+        )}
       </div>
-
-      <h1 style={{ color: 'var(--primary-color)' }}>{hotel.name}</h1>
-      {room && <p style={{ color: '#666', marginTop: -8 }}>{t('guest.table')} {room}</p>}
-      <p>{t('guest.welcome')}</p>
-
-      <div style={{ display: 'grid', gap: 12, marginTop: 24 }}>
-        {enabledButtons.map(({ key, label, icon, view: btnView }) => (
-          <button key={key} style={btn} onClick={() => setView(btnView)}>
-            {icon} {label}
-          </button>
-        ))}
-      </div>
-
-      {requestCategories.length === 0 && !token && (
-        <p style={{ marginTop: 24, fontSize: 13, color: '#999' }}>
-          {t('guest.scan_qr')}
-        </p>
-      )}
-    </div>
+    </GuestLayout>
   );
 }
 

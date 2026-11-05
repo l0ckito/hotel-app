@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import GuestLayout from '../../components/GuestLayout';
 import { useHotel } from '../../hooks/useHotel';
 import { getMenuItems, type MenuItem } from '../../api/menu';
 import { placeOrder } from '../../api/orders';
@@ -96,110 +97,113 @@ export default function MenuPage({
 
   if (done) {
     return (
-      <div style={shell}>
-        <button onClick={onBack} style={backBtn}>← {t('guest.back')}</button>
-        <div style={{ textAlign: 'center', paddingTop: 32 }}>
-          <div style={{ fontSize: 64 }}>✅</div>
-          <h2 style={{ color: 'var(--primary-color)', marginBottom: 8 }}>{t('guest.order_placed')}</h2>
-          <p style={{ color: '#555' }}>{t('guest.table')} {room || '—'} · {hotel.name}</p>
-          <button onClick={onBack} style={{ ...primaryBtn, marginTop: 16 }}>
-            {t('guest.back_home')}
-          </button>
+      <GuestLayout>
+        <div style={shell}>
+          <button onClick={onBack} style={backBtn}>← {t('guest.back')}</button>
+          <div style={{ textAlign: 'center', paddingTop: 32 }}>
+            <div style={{ fontSize: 64 }}>✅</div>
+            <h2 style={{ color: 'var(--primary-color)', marginBottom: 8 }}>{t('guest.order_placed')}</h2>
+            <p style={{ color: '#555' }}>{t('guest.table')} {room || '—'} · {hotel.name}</p>
+            <button onClick={onBack} style={{ ...primaryBtn, marginTop: 16 }}>
+              {t('guest.back_home')}
+            </button>
+          </div>
         </div>
-      </div>
+      </GuestLayout>
     );
   }
 
   if (loading) {
     return (
-      <div style={shell}>
-        <button onClick={onBack} style={backBtn}>← {t('guest.back')}</button>
-        <p>{t('guest.loading')}</p>
-      </div>
+      <GuestLayout>
+        <div style={shell}>
+          <button onClick={onBack} style={backBtn}>← {t('guest.back')}</button>
+          <p>{t('guest.loading')}</p>
+        </div>
+      </GuestLayout>
     );
   }
 
   return (
-    <div style={shell}>
-      <button onClick={onBack} style={backBtn}>← {t('guest.back')}</button>
-      <h2 style={{ color: 'var(--primary-color)', marginBottom: 8 }}>{hotel.name}</h2>
-      <p style={{ marginTop: 0, color: '#666' }}>{t('guest.table')} {room || t('guest.no_table_assigned')}</p>
+    <GuestLayout>
+      <div style={shell}>
+        <button onClick={onBack} style={backBtn}>← {t('guest.back')}</button>
+        <p style={{ marginTop: 12, marginBottom: 16, color: '#666' }}>{t('guest.table')} {room || t('guest.no_table_assigned')}</p>
 
-      {categories.map((category) => (
-        <div key={category} style={{ marginTop: 20 }}>
-          <h3 style={{ margin: '0 0 12px', color: '#333' }}>{category}</h3>
-          <div style={{ display: 'grid', gap: 12 }}>
-            {items
-              .filter((item) => item.category === category)
-              .map((item) => (
-                <div key={item.id} style={card}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 17 }}>{item.name}</div>
-                    {item.description && (
-                      <div style={{ color: '#555', fontSize: 13, marginTop: 4 }}>{item.description}</div>
-                    )}
-                    <div style={{ color: 'var(--primary-color)', fontWeight: 700, marginTop: 8 }}>
-                      ${Number(item.price).toFixed(2)}
+        {categories.map((category) => (
+          <div key={category} style={{ marginTop: 20 }}>
+            <h3 style={{ margin: '0 0 12px', color: '#333' }}>{category}</h3>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {items
+                .filter((item) => item.category === category)
+                .map((item) => (
+                  <div key={item.id} style={card}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 17 }}>{item.name}</div>
+                      {item.description && (
+                        <div style={{ color: '#555', fontSize: 13, marginTop: 4 }}>{item.description}</div>
+                      )}
+                      <div style={{ color: 'var(--primary-color)', fontWeight: 700, marginTop: 8 }}>
+                        ${Number(item.price).toFixed(2)}
+                      </div>
                     </div>
+                    <button onClick={() => addToCart(item)} style={smallBtn}>
+                      + {t('guest.add')}
+                    </button>
                   </div>
-                  <button onClick={() => addToCart(item)} style={smallBtn}>
-                    + {t('guest.add')}
-                  </button>
-                </div>
-              ))}
-          </div>
-        </div>
-      ))}
-
-      <div style={cartBar}>
-        <div>
-          <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {t('guest.cart')}
-          </div>
-          <div style={{ fontWeight: 700, fontSize: 18 }}>${total.toFixed(2)}</div>
-        </div>
-        <button onClick={handlePlaceOrder} disabled={placing || cartItems.length === 0} style={{
-          ...primaryBtn,
-          opacity: placing || cartItems.length === 0 ? 0.7 : 1,
-        }}>
-          {placing ? t('guest.sending') : t('guest.place_order')}
-        </button>
-      </div>
-
-      {error && (
-        <p style={{ color: '#b91c1c', marginTop: 14, background: '#fef2f2', padding: 12, borderRadius: 8 }}>
-          {error}
-        </p>
-      )}
-
-      {cartItems.length > 0 && (
-        <div style={{ marginTop: 18, display: 'grid', gap: 8 }}>
-          {cartItems.map((item) => (
-            <div key={item.id} style={{ ...card, background: '#fffaf2' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700 }}>{item.quantity}x {item.name}</div>
-                <div style={{ color: '#666', fontSize: 13 }}>
-                  ${Number(item.price).toFixed(2)} {t('guest.each')}
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button onClick={() => updateQuantity(item.id, -1)} style={qtyBtn}>−</button>
-                <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 600 }}>{item.quantity}</span>
-                <button onClick={() => updateQuantity(item.id, 1)} style={qtyBtn}>+</button>
-              </div>
+                ))}
             </div>
-          ))}
+          </div>
+        ))}
+
+        <div style={cartBar}>
+          <div>
+            <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              {t('guest.cart')}
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 18 }}>${total.toFixed(2)}</div>
+          </div>
+          <button onClick={handlePlaceOrder} disabled={placing || cartItems.length === 0} style={{
+            ...primaryBtn,
+            opacity: placing || cartItems.length === 0 ? 0.7 : 1,
+          }}>
+            {placing ? t('guest.sending') : t('guest.place_order')}
+          </button>
         </div>
-      )}
-    </div>
+
+        {error && (
+          <p style={{ color: '#b91c1c', marginTop: 14, background: '#fef2f2', padding: 12, borderRadius: 8 }}>
+            {error}
+          </p>
+        )}
+
+        {cartItems.length > 0 && (
+          <div style={{ marginTop: 18, display: 'grid', gap: 8 }}>
+            {cartItems.map((item) => (
+              <div key={item.id} style={{ ...card, background: '#fffaf2' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700 }}>{item.quantity}x {item.name}</div>
+                  <div style={{ color: '#666', fontSize: 13 }}>
+                    ${Number(item.price).toFixed(2)} {t('guest.each')}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button onClick={() => updateQuantity(item.id, -1)} style={qtyBtn}>−</button>
+                  <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 600 }}>{item.quantity}</span>
+                  <button onClick={() => updateQuantity(item.id, 1)} style={qtyBtn}>+</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </GuestLayout>
   );
 }
 
 const shell: React.CSSProperties = {
-  padding: 24,
+  padding: 0,
   fontFamily: 'system-ui',
-  maxWidth: 540,
-  margin: '0 auto',
   paddingBottom: 120,
 };
 
