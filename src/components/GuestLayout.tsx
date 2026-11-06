@@ -48,10 +48,14 @@ export default function GuestLayout({ children }: { children: ReactNode }) {
               src={hotel.logo_url}
               alt={hotel.name}
               style={{
-                width: 52,
                 height: 52,
-                borderRadius: 12,
-                objectFit: 'cover',
+                maxWidth: 160,
+                width: 'auto',
+                borderRadius: 8,
+                objectFit: 'contain',
+                objectPosition: 'left center',
+                display: 'block',
+                background: 'transparent',
                 border: '1px solid rgba(148,163,184,0.3)',
               }}
             />
