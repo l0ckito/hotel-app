@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { getMe, signOut, type StaffMe } from '../../api/staff';
@@ -45,6 +45,69 @@ export default function StaffDashboard() {
   const [orders, setOrders] = useState<FullOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'staff' | 'guest-home' | 'guest-wifi' | 'guest-services'>('staff');
+  const [soundMuted, setSoundMuted] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const requestAlertPermission = useCallback(async () => {
+    if (!('Notification' in window)) {
+      setNotificationPermission('unsupported');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      setNotificationPermission('granted');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      setNotificationPermission('denied');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+  }, []);
+
+  const playAlertSound = useCallback(() => {
+    if (soundMuted) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    void audio.play().catch(() => undefined);
+  }, [soundMuted]);
+
+  const showBrowserNotification = useCallback((title: string, body: string) => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (notificationPermission !== 'granted') return;
+    if (document.hasFocus()) return;
+
+    const notification = new Notification(title, {
+      body,
+      icon: '/notification.wav',
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  }, [notificationPermission]);
+
+  const summarizeOrderForNotification = useCallback((order: Partial<FullOrder>) => {
+    const room = order.room_number ?? 'Unknown';
+    const items = Array.isArray(order.order_items) ? order.order_items : [];
+    const summary = items.slice(0, 3).map((item) => {
+      const menuItemData = Array.isArray(item.menu_items) ? item.menu_items[0] : item.menu_items;
+      const itemName = menuItemData?.name ?? 'Item';
+      return item.quantity > 1 ? `${item.quantity}x ${itemName}` : itemName;
+    }).join(', ');
+
+    return summary ? `Table ${room} — ${summary}` : `Table ${room} — ${items.length || 0} items`;
+  }, []);
+
+  useEffect(() => {
+    if (!me) return;
+    void requestAlertPermission();
+  }, [me, requestAlertPermission]);
 
   useEffect(() => {
     let isMounted = true;
@@ -90,7 +153,12 @@ export default function StaffDashboard() {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'requests', filter: `hotel_id=eq.${staff.hotel_id}` },
           (payload) => {
-            if (payload.eventType === 'INSERT') setRequests((prev) => [payload.new as Req, ...prev]);
+            if (payload.eventType === 'INSERT') {
+              const req = payload.new as Req;
+              setRequests((prev) => [req, ...prev]);
+              playAlertSound();
+              showBrowserNotification('New Request', `Table ${req.room_number} — ${getRequestLabel(req.category ?? '', t)}`);
+            }
             if (payload.eventType === 'UPDATE')
               setRequests((prev) => prev.map((r) => (r.id === (payload.new as Req).id ? (payload.new as Req) : r)));
           },
@@ -115,7 +183,11 @@ export default function StaffDashboard() {
               `)
               .eq('id', payload.new.id)
               .single();
-            if (data) setOrders((prev) => [data as FullOrder, ...prev]);
+            if (data) {
+              setOrders((prev) => [data as FullOrder, ...prev]);
+              playAlertSound();
+              showBrowserNotification('New Order', summarizeOrderForNotification(data as FullOrder));
+            }
           },
         )
         .on(
@@ -272,6 +344,7 @@ export default function StaffDashboard() {
 
   return (
     <HotelContext.Provider value={hotelContextValue}>
+      <audio ref={audioRef} src="/notification.wav" preload="auto" />
       <style>{neonTabsCss}</style>
       <div
         style={{
@@ -341,6 +414,14 @@ export default function StaffDashboard() {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                aria-label={soundMuted ? 'Enable alerts' : 'Mute alerts'}
+                onClick={() => setSoundMuted((value) => !value)}
+                style={{ ...smallBtn, background: 'white' }}
+              >
+                {soundMuted ? '🔇' : '🔊'}
+              </button>
               <select
                 value={i18n.language}
                 onChange={(e) => i18n.changeLanguage(e.target.value)}

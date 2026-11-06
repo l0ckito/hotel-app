@@ -7,4 +7,13 @@ if (!url || !key) {
   throw new Error('Missing Supabase env vars. Check .env.local');
 }
 
-export const supabase = createClient(url, key);
+export const supabase = createClient(url, key, {
+  realtime: {
+    worker: true,
+    heartbeatCallback: (status) => {
+      if (status === 'disconnected') {
+        supabase.realtime.connect();
+      }
+    },
+  },
+});
