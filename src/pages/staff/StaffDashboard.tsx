@@ -47,7 +47,7 @@ export default function StaffDashboard() {
   const [view, setView] = useState<'staff' | 'guest-home' | 'guest-wifi' | 'guest-services'>('staff');
   const [soundMuted, setSoundMuted] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>('default');
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const notificationAudio = useRef<HTMLAudioElement | null>(null);
 
   const requestAlertPermission = useCallback(async () => {
     if (!('Notification' in window)) {
@@ -71,9 +71,14 @@ export default function StaffDashboard() {
 
   const playAlertSound = useCallback(() => {
     if (soundMuted) return;
-    const audio = audioRef.current;
+    const audio = notificationAudio.current;
     if (!audio) return;
-    void audio.play().catch(() => undefined);
+
+    audio.loop = true;
+    if (audio.paused) {
+      audio.currentTime = 0;
+      void audio.play().catch(() => undefined);
+    }
   }, [soundMuted]);
 
   const showBrowserNotification = useCallback((title: string, body: string) => {
@@ -108,6 +113,37 @@ export default function StaffDashboard() {
     if (!me) return;
     void requestAlertPermission();
   }, [me, requestAlertPermission]);
+
+  useEffect(() => {
+    notificationAudio.current = new Audio('/notification.wav');
+    notificationAudio.current.loop = false;
+    notificationAudio.current.volume = 1;
+
+    const stopSound = () => {
+      const audio = notificationAudio.current;
+      if (!audio) return;
+      if (!audio.paused) {
+        audio.pause();
+      }
+      audio.currentTime = 0;
+      audio.loop = false;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        stopSound();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', stopSound);
+
+    return () => {
+      stopSound();
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', stopSound);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -344,7 +380,6 @@ export default function StaffDashboard() {
 
   return (
     <HotelContext.Provider value={hotelContextValue}>
-      <audio ref={audioRef} src="/notification.wav" preload="auto" />
       <style>{neonTabsCss}</style>
       <div
         style={{
