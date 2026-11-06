@@ -57,6 +57,17 @@ const DEFAULT_CATEGORIES: Record<TenantType, string[]> = {
   both: ALL_REQUEST_CATEGORIES as unknown as string[],
 };
 
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-');
+}
+
 type HotelFormValues = {
   name: string;
   subdomain: string;
@@ -266,7 +277,12 @@ function EditHotelForm({ hotel, onSaved, onCancel, t }: { hotel: Hotel; onSaved:
     setError(null);
 
     try {
-      const cleanSubdomain = form.subdomain.trim().toLowerCase();
+      const cleanSubdomain = slugify(form.subdomain);
+      if (cleanSubdomain.length < 2) {
+        setError('Subdomain must contain letters or numbers');
+        return;
+      }
+
       const payload = {
         name: form.name.trim(),
         subdomain: cleanSubdomain,
@@ -301,7 +317,13 @@ function EditHotelForm({ hotel, onSaved, onCancel, t }: { hotel: Hotel; onSaved:
     <form onSubmit={submit} style={{ marginTop: 16, padding: 16, border: '1px solid #eee', borderRadius: 12 }}>
       <h3 style={{ marginTop: 0, marginBottom: 12 }}>{t('admin.edit_hotel')}</h3>
       <input style={input} placeholder={t('admin.hotel_name')} value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} required />
-      <input style={input} placeholder={t('admin.subdomain')} value={form.subdomain} onChange={(e) => setForm((prev) => ({ ...prev, subdomain: e.target.value }))} required />
+      <input
+        style={input}
+        placeholder={t('admin.subdomain')}
+        value={form.subdomain}
+        onChange={(e) => setForm((prev) => ({ ...prev, subdomain: slugify(e.target.value) }))}
+        required
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <label style={{ ...label, marginBottom: 0 }}>
@@ -403,7 +425,12 @@ function NewHotelForm({ onCreated, t }: { onCreated: (h: Hotel) => void; t: (key
     e.preventDefault();
     setError(null);
     try {
-      const cleanSubdomain = form.subdomain.toLowerCase().trim();
+      const cleanSubdomain = slugify(form.subdomain);
+      if (cleanSubdomain.length < 2) {
+        setError('Subdomain must contain letters or numbers');
+        return;
+      }
+
       const created = await createHotel({
         name: form.name.trim(),
         subdomain: cleanSubdomain,
@@ -439,7 +466,13 @@ function NewHotelForm({ onCreated, t }: { onCreated: (h: Hotel) => void; t: (key
   return (
     <form onSubmit={submit} style={{ marginTop: 16, padding: 16, border: '1px solid #eee', borderRadius: 12 }}>
       <input style={input} placeholder={t('admin.hotel_name')} value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} required />
-      <input style={input} placeholder={t('admin.subdomain')} value={form.subdomain} onChange={(e) => setForm((prev) => ({ ...prev, subdomain: e.target.value }))} required />
+      <input
+        style={input}
+        placeholder={t('admin.subdomain')}
+        value={form.subdomain}
+        onChange={(e) => setForm((prev) => ({ ...prev, subdomain: slugify(e.target.value) }))}
+        required
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <label style={{ ...label, marginBottom: 0 }}>
@@ -532,7 +565,7 @@ function QrPanel({ hotel, onClose, t }: { hotel: Hotel; onClose: () => void; t: 
     } catch (e: any) { setError(e.message); }
   }
 
-  const base = `${window.location.origin}/?hotel=${hotel.subdomain}&room=${encodeURIComponent(room)}&t=${token ?? ''}`;
+  const base = `${window.location.origin}/?hotel=${encodeURIComponent(hotel.subdomain)}&room=${encodeURIComponent(room)}&t=${encodeURIComponent(token ?? '')}`;
 
   return (
     <div style={{ marginTop: 32, padding: 20, border: '1px solid #eee', borderRadius: 12 }}>
