@@ -5,6 +5,15 @@ import { useHotel } from '../../hooks/useHotel';
 import { getMenuItems, type MenuItem } from '../../api/menu';
 import { placeOrder } from '../../api/orders';
 
+const SLUGIFY = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
 export default function MenuPage({
   room,
   token,
@@ -22,6 +31,7 @@ export default function MenuPage({
   const [placing, setPlacing] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   useEffect(() => {
     getMenuItems(hotel.id)
@@ -30,10 +40,51 @@ export default function MenuPage({
       .finally(() => setLoading(false));
   }, [hotel.id]);
 
-  const categories = useMemo(
-    () => Array.from(new Set(items.map((i) => i.category))).sort(),
-    [items],
-  );
+  const grouped = useMemo(() => {
+    const map = new Map<string, MenuItem[]>();
+
+    for (const item of items) {
+      const category = (item.category ?? '').trim() || t('guest.other');
+      if (!map.has(category)) map.set(category, []);
+      map.get(category)!.push(item);
+    }
+
+    return Array.from(map.entries());
+  }, [items, t]);
+
+  useEffect(() => {
+    if (!grouped.length) {
+      setActiveCategory(null);
+      return;
+    }
+
+    setActiveCategory((prev) => prev ?? grouped[0][0]);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (visible) {
+          const category = visible.target.getAttribute('data-category');
+          if (category) setActiveCategory(category);
+        }
+      },
+      {
+        root: null,
+        threshold: [0.2, 0.5, 0.8],
+        rootMargin: '-18% 0px -44% 0px',
+      },
+    );
+
+    for (const [category] of grouped) {
+      const element = document.getElementById(`cat-${SLUGIFY(category)}`);
+      if (element) observer.observe(element);
+    }
+
+    return () => observer.disconnect();
+  }, [grouped]);
 
   const cartItems = useMemo(
     () =>
@@ -130,13 +181,48 @@ export default function MenuPage({
         <button onClick={onBack} style={backBtn}>← {t('guest.back')}</button>
         <p style={{ marginTop: 12, marginBottom: 16, color: '#666' }}>{t('guest.table')} {room || t('guest.no_table_assigned')}</p>
 
-        {categories.map((category) => (
-          <div key={category} style={{ marginTop: 20 }}>
-            <h3 style={{ margin: '0 0 12px', color: '#333' }}>{category}</h3>
-            <div style={{ display: 'grid', gap: 12 }}>
-              {items
-                .filter((item) => item.category === category)
-                .map((item) => (
+        {grouped.length > 1 && (
+          <div style={tabBar}>
+            {grouped.map(([category]) => {
+              const isActive = activeCategory === category;
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => {
+                    const element = document.getElementById(`cat-${SLUGIFY(category)}`);
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  aria-pressed={isActive}
+                  style={{
+                    ...tabButton,
+                    ...(isActive ? activeTabButton : {}),
+                  }}
+                >
+                  {category}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {grouped.length === 0 ? (
+          <div style={{ padding: '26px 0', color: '#666', textAlign: 'center', fontWeight: 600 }}>
+            {t('guest.menu_coming_soon')}
+          </div>
+        ) : (
+          grouped.map(([category, categoryItems]) => (
+            <section
+              key={category}
+              id={`cat-${SLUGIFY(category)}`}
+              data-category={category}
+              style={{ scrollMarginTop: 110, marginTop: grouped.length > 1 ? 28 : 0 }}
+            >
+              <h2 style={sectionHeader}>{category}</h2>
+              <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
+                {categoryItems.map((item) => (
                   <div key={item.id} style={card}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 17 }}>{item.name}</div>
@@ -147,14 +233,15 @@ export default function MenuPage({
                         ${Number(item.price).toFixed(2)}
                       </div>
                     </div>
-                    <button onClick={() => addToCart(item)} style={smallBtn}>
+                    <button type="button" onClick={() => addToCart(item)} style={smallBtn}>
                       + {t('guest.add')}
                     </button>
                   </div>
                 ))}
-            </div>
-          </div>
-        ))}
+              </div>
+            </section>
+          ))
+        )}
 
         <div style={cartBar}>
           <div>
@@ -188,9 +275,9 @@ export default function MenuPage({
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <button onClick={() => updateQuantity(item.id, -1)} style={qtyBtn}>−</button>
+                  <button type="button" onClick={() => updateQuantity(item.id, -1)} style={qtyBtn}>−</button>
                   <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 600 }}>{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.id, 1)} style={qtyBtn}>+</button>
+                  <button type="button" onClick={() => updateQuantity(item.id, 1)} style={qtyBtn}>+</button>
                 </div>
               </div>
             ))}
@@ -208,23 +295,101 @@ const shell: React.CSSProperties = {
 };
 
 const backBtn: React.CSSProperties = {
-  background: 'transparent', border: 'none', fontSize: 15, cursor: 'pointer', padding: 0, color: '#555',
+  background: 'transparent',
+  border: 'none',
+  fontSize: 15,
+  cursor: 'pointer',
+  padding: 0,
+  color: '#555',
+};
+
+const tabBar: React.CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  overflowX: 'auto',
+  padding: '12px 0 10px',
+  position: 'sticky',
+  top: 0,
+  zIndex: 15,
+  background: 'var(--brand-surface, #fff)',
+  backdropFilter: 'blur(8px)',
+  margin: '0 -24px',
+  paddingLeft: 24,
+  paddingRight: 24,
+  scrollbarWidth: 'none',
+};
+
+const tabButton: React.CSSProperties = {
+  appearance: 'none',
+  border: '1px solid rgba(128, 0, 0, 0.3)',
+  background: '#fff',
+  color: '#800000',
+  padding: '8px 14px',
+  borderRadius: 999,
+  whiteSpace: 'nowrap',
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: 'pointer',
+  flexShrink: 0,
+};
+
+const activeTabButton: React.CSSProperties = {
+  background: '#800000',
+  color: '#fff',
+  borderColor: '#800000',
+  boxShadow: '0 6px 18px rgba(128, 0, 0, 0.18)',
+};
+
+const sectionHeader: React.CSSProperties = {
+  position: 'sticky',
+  top: 58,
+  zIndex: 10,
+  background: 'var(--brand-surface, #fff)',
+  padding: '10px 0',
+  margin: 0,
+  color: '#800000',
+  fontSize: 18,
+  fontWeight: 800,
 };
 
 const card: React.CSSProperties = {
-  display: 'flex', alignItems: 'flex-start', gap: 12, padding: 16, borderRadius: 14, border: '1px solid #eee', background: 'white',
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: 12,
+  padding: 16,
+  borderRadius: 14,
+  border: '1px solid #eee',
+  background: 'white',
 };
 
 const smallBtn: React.CSSProperties = {
-  padding: '10px 12px', borderRadius: 10, border: 'none', background: '#800000', color: 'white', fontWeight: 700, cursor: 'pointer',
+  padding: '10px 12px',
+  borderRadius: 10,
+  border: 'none',
+  background: '#800000',
+  color: 'white',
+  fontWeight: 700,
+  cursor: 'pointer',
 };
 
 const primaryBtn: React.CSSProperties = {
-  padding: '14px 18px', borderRadius: 12, background: '#800000', border: 'none', color: 'white', fontWeight: 700, cursor: 'pointer',
+  padding: '14px 18px',
+  borderRadius: 12,
+  background: '#800000',
+  border: 'none',
+  color: 'white',
+  fontWeight: 700,
+  cursor: 'pointer',
 };
 
 const qtyBtn: React.CSSProperties = {
-  width: 28, height: 28, borderRadius: 8, border: '1px solid #ddd', background: 'white', fontWeight: 700, cursor: 'pointer',
+  width: 28,
+  height: 28,
+  borderRadius: 8,
+  border: '1px solid #ddd',
+  background: 'white',
+  fontWeight: 700,
+  cursor: 'pointer',
 };
 
 const cartBar: React.CSSProperties = {
@@ -238,6 +403,6 @@ const cartBar: React.CSSProperties = {
   padding: '16px 18px',
   borderRadius: 16,
   border: '1px solid #f0d47a',
-  background: 'linear-gradient(135deg, #fffaf0, #fff) ',
+  background: 'linear-gradient(135deg, #fffaf0, #fff)',
   boxShadow: '0 12px 32px rgba(0,0,0,0.08)',
 };
